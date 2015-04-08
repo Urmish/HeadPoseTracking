@@ -10,3 +10,4 @@ Useful Links -
 4. [OpenNI](http://structure.io/openni)
 5. [PrimeSensor Module for OpenNI](https://github.com/avin2/SensorKinect)
 6. [OpenCV-2.4.9](http://opencv.org/downloads.html)
+7. [Good place to  start with the basics of OpenCV](http://www.cs.princeton.edu/courses/archive/fall08/cos429/CourseMaterials/Precept1/facedetect.pdf)
