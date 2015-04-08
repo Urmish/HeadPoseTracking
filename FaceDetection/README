@@ -1,0 +1,9 @@
+open terminal in test_opencv folder
+
+type 
+sh opencvcmd.sh video
+./video
+
+it take 4 xml file
+
+you can make  modification in this code and use it for your prjct
