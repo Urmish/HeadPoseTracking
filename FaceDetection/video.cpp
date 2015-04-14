@@ -94,40 +94,40 @@ int main( int argc, char** argv )
         for(;;)
         {
             // Capture the frame and load it in IplImage
-            if( !cvGrabFrame( capture ))
-                break;
-            frame = cvRetrieveFrame( capture );
+		if( !cvGrabFrame( capture ))
+                	break;
+            	frame = cvRetrieveFrame( capture );
 
             // If the frame does not exist, quit the loop
-            if( !frame )
-                break;
+            	if( !frame )
+                	break;
             
             // Allocate framecopy as the same size of the frame
-            if( !frame_copy )
-                frame_copy = cvCreateImage( cvSize(frame->width,frame->height),
+            	if( !frame_copy )
+                	frame_copy = cvCreateImage( cvSize(frame->width,frame->height),
                                             IPL_DEPTH_8U, frame->nChannels );
 
             // Check the origin of image. If top left, copy the image frame to frame_copy. 
-            if( frame->origin == IPL_ORIGIN_TL )
-                cvCopy( frame, frame_copy, 0 );
+            	if( frame->origin == IPL_ORIGIN_TL )
+                	cvCopy( frame, frame_copy, 0 );
             // Else flip and copy the image
-            else
-                cvFlip( frame, frame_copy, 0 );
+            	else
+                	cvFlip( frame, frame_copy, 0 );
             
 
 		for(int i=0;i<2;i++)
 		{
 	
-	    cascade = (CvHaarClassifierCascade*)cvLoad( cascade_name[i], 0, 0, 0 );
+	    		cascade = (CvHaarClassifierCascade*)cvLoad( cascade_name[i], 0, 0, 0 );
     
 	    // Check whether the cascade has loaded successfully. Else report and error and quit
-	    if( !cascade )
-    		{
-       		 fprintf( stderr, "ERROR: Could not load classifier cascade\n" );
-       		 return -1;
-    		}
+			if( !cascade )
+    		    	{
+ 	      			fprintf( stderr, "ERROR: Could not load classifier cascade\n" );
+		       		return -1;
+    		    	}
             // Call the function to detect and draw the face
-            	detect_and_draw(frame_copy,cascade);
+            		detect_and_draw(frame_copy,cascade);
 		//{
 
 		//	std::cout<< i <<std::endl;
@@ -152,13 +152,10 @@ int main( int argc, char** argv )
 
 		}
             // Wait for a while before proceeding to the next frame
-            if( cvWaitKey( 1 ) >= 0 )
-             break;
-	    if (quit_signal) exit(0);
+                if( cvWaitKey( 1 ) >= 0 )
+             		break;
+	    	if (quit_signal) exit(0);
 //              cvWaitKey (10);
-   
-
-
      }
 
         // Release the images, and capture memory
