@@ -1,0 +1,15 @@
+1) This program takes input from Kinect, detects face and saves a csv file of the face.
+2) You see 2 example csv files and the corresponding input and output after running icp
+
+The icp output was -
+
+match ratio: 0.850036
+writing to test_ref.vtk
+writing to test_data_in.vtk
+writing to test_data_out.vtk
+ICP transformation:
+0.823905   0.559268 -0.0916494    -5.7177
+-0.53772   0.822519   0.185256    1.07396
+0.178991  -0.103352   0.978407   -11.0947
+       0          0          0          1
+
