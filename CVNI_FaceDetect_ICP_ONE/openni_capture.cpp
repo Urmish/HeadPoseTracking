@@ -83,10 +83,10 @@ void matToCSV (Mat& image , int filenumber)
 		for (int j=0;j<cols;j++)
 		{
 			int depth = temp.at<int>(i,j);
-			if (depth != 0)
-			{
-				Face_Template << i <<","<<j <<"," <<depth << endl;
-			}
+			//if (depth != 0)
+			//{
+			      Face_Template << i <<","<<j <<"," <<depth << endl;
+			//}
 		}
 	}
 	Face_Template.close();
@@ -317,7 +317,7 @@ int main( int argc, char* argv[] )
         /*    if( retrievedImageFlags[4] && capture.retrieve( grayImage, CV_CAP_OPENNI_GRAY_IMAGE ) )
                 imshow( "gray image", grayImage );*/
 	    if(!depthMap.empty() && !bgrImage.empty())
-		    detectAndDisplay(bgrImage, show, argc, argv, filenumber);
+		    detectAndDisplay(bgrImage, depthMap, argc, argv, filenumber);
 	    
 	    filenumber++;
 	    if (filenumber > 3)
@@ -377,10 +377,12 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[], int
          {
 	 	min_g = min;
 		face_index = i;
-		min_loc_g = min_loc;
+		min_loc_g.x = faces[i].x + min_loc.x ;
+		min_loc_g.y = faces[i].y + min_loc.y ;
 		nose = eyes[j];
                 nose_center.x = faces[i].x + eyes[j].x + eyes[j].width/2;
 		nose_center.y = faces[i].y + eyes[j].y + eyes[j].height/2 ;
+		
          }      
       	 found = 1;
 
@@ -395,14 +397,14 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[], int
         int radius = cvRound( (nose.width + nose.height)*0.25 );
         circle( rgbframe, nose_center, radius, Scalar( 255, 0, 0 ), 3, 8, 0 );
    	imshow( window_name, rgbframe );
-      	Mat d_rect = rgbframe(faces[face_index]);
-	Mat nice_output;
-	cv::normalize(d_rect, nice_output , 0, 255, CV_MINMAX, CV_8UC1);
-      	imshow("Face Depth", nice_output);
+      	Mat d_rect = depthframe(faces[face_index]);
+      	imshow("Face Depth",depthframe);
+	printf("Nose depth is nose_center %d \n",depthframe.at<int>(nose_center.x,nose_center.y));
 	//file<<"depthMap"<<d_rect(nose);
 	//file<<"depthMap"<<d_rect;
 	//int filenumber2 = 1;
 	//cin >> filenumber2;
+	printf("Point is %d,%d \n",min_loc_g.x,min_loc_g.y);
 	if (filenumber == 1 || filenumber == 2)
 	{
 		matToCSV(d_rect, filenumber);
@@ -412,7 +414,6 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[], int
 		transformation(argc, argv);
 	}
 	
-	printf("Point is %d,%d \n",min_loc_g.x,min_loc_g.y);
    }
 }
 
