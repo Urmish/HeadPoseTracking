@@ -6,3 +6,5 @@
 Check this out... This is the opencv method to bring in kinect data. We can use the face detect algorithm opencv for face detection part...
 3. Good ppt for ICP -
 http://resources.mpi-inf.mpg.de/deformableShapeMatching/EG2012_Tutorial/slides/1.2%20ICP_+_TPS_(NM).pdf
+4. Understanding Transformation Matrix to Euler Angle Conversion -
+http://staff.city.ac.uk/~sbbh653/publications/euler.pdf
