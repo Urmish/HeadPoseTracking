@@ -1,7 +1,3 @@
-readingDataPointsFilters:
-  - RandomSamplingDataPointsFilter:
-      prob: 0.5
-
 matcher:
   KDTreeMatcher:
     knn: 1
@@ -9,7 +5,7 @@ matcher:
 
 outlierFilters:
   - TrimmedDistOutlierFilter:
-      ratio: 0.9
+      ratio: 0.75
 
 errorMinimizer:
   PointToPointErrorMinimizer
@@ -20,14 +16,23 @@ transformationCheckers:
   - DifferentialTransformationChecker:
       minDiffRotErr: 0.001
       minDiffTransErr: 0.01
-      smoothLength: 4 
+      smoothLength: 4   
+
+#inspector:
+#  NullInspector
 
 inspector:
-  VTKFileInspector:
-     baseFileName : vissteps
-     dumpDataLinks : 0
-     dumpReading : 0
-     dumpReference : 0
+ VTKFileInspector:
+     baseFileName: pointmatcher-run1
+     dumpPerfOnExit: 0
+     dumpStats: 0
+     dumpIterationInfo: 1 
+     dumpDataLinks: 0 
+     dumpReading: 0 
+     dumpReference: 0 
+
 
 logger:
   NullLogger
+#  FileLogger
+

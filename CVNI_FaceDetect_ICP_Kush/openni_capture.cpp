@@ -10,11 +10,24 @@
 #include <cassert>
 #include <iostream>
 #include "boost/filesystem.hpp"
+#include <time.h>
 
 
 using namespace cv;
 using namespace std;
 static int filenumber = 1;
+
+Rect golden_face;
+Point golden_nose_point;
+int golden_nose_depth;
+Mat golden_image;
+int offset_x = 0;
+int offset_y = 0;
+int offset_z = 0;
+
+ofstream Trans_dump ("Transformation_dump.csv");
+#define MATRIX_DUMP 1
+
 void detectAndDisplay( Mat rgbframe, Mat depthframe , int argc, char *argv[]);
 
 /** Global variables */
@@ -133,6 +146,20 @@ void transformation (int argc, char *argv[])
 	data_out.save("test_data_out.vtk");
 	cout << "Final transformation:" << endl << T << endl;
 
+    // Updating transform matrix 
+    T(0,3) = offset_x;
+    T(1,3) = offset_y;
+    T(2,3) = offset_z;
+	cout << "Final transformation:" << endl << T << endl;
+
+    if(MATRIX_DUMP == 1) {
+        for(int i = 0; i < 4; i++)
+        {
+            Trans_dump << T(i,0) <<"," <<T(i,1) <<"," << T(i,2) << "," << T(i,3) <<endl;
+        }
+         Trans_dump << endl << endl;
+    }
+
     float R[3][3];
     
     for(int i = 0; i < 3; i++)
@@ -147,7 +174,7 @@ void transformation (int argc, char *argv[])
 
 }
 
-void matToCSV (Mat& image )
+void matToCSV (Mat& image, Rect detected_face )
 {
 	Mat temp;
 	image.convertTo(temp, CV_32S);
@@ -167,8 +194,9 @@ void matToCSV (Mat& image )
 	int cols = image.cols;
 
     // Finding Depth of nose, assuming its minimum
+    Point nose;
     int nose_depth = 2147483647;
-    int FACE_DEPTH = 50; // 50 mm inwards into the face
+    int FACE_DEPTH = 45; // 45 mm inwards into the face
 	for (int i=0;i<rows;i++)
 	{
 		for (int j=0;j<cols;j++)
@@ -177,22 +205,54 @@ void matToCSV (Mat& image )
 			if (depth != 0 && depth < nose_depth)
 			{
                 nose_depth = depth;
+                // Storing Global golden nose parameters
+                if(name == "Golden.csv") {
+                    golden_nose_point.x = j;
+                    golden_nose_point.y = i;
+                    golden_nose_depth = depth;
+                }
+                else {
+                    nose.x = j;
+                    nose.y = i;
+                }
 			}
 		}
 	}
 
 
-	for (int i=0;i<rows;i++)
+    if( name == "Golden.csv") { 
+        printf(" Golden Nose coordinates are : X = %d, Y = %d, Z = %d\n", golden_nose_point.x , golden_nose_point.y,  golden_nose_depth);
+        offset_x =  golden_face.x;
+        offset_y =  golden_face.y;
+
+    }
+    else {
+        // Images are already of same sizes -- Golden & Detected
+        offset_z = golden_nose_depth - nose_depth;
+        offset_x = detected_face.x +  (golden_face.x + golden_nose_point.x)  - (detected_face.x + nose.x) ;
+        offset_y = detected_face.y +  (golden_face.y + golden_nose_point.y)  - (detected_face.y + nose.y) ;
+        //printf("\n\nTranslational Offset w.r.t Golden are - X : %d, Y : %d, Z : %d\n", offset_z, offset_x -  detected_face.x, offset_y - detected_face.y);
+    }
+
+        printf("\n\nGolden Nose coordinates are : X = %d, Y = %d, Z = %d\n", golden_face.x + golden_nose_point.x , golden_face.y + golden_nose_point.y,  golden_nose_depth);
+        printf("Translational Offset w.r.t Golden (Subtract these from Golden) are  - X : %d, Y : %d, Z : %d\n", offset_x -  detected_face.x, offset_y - detected_face.y, offset_z);
+
+	for (int i=0;i<rows;i=i+2)
 	{
-		for (int j=0;j<cols;j++)
+		for (int j=0;j<cols;j+=2)
 		{
 			int depth = temp.at<int>(i,j);
 			if (depth != 0 && depth < (nose_depth + FACE_DEPTH))
 			{
-			      Face_Template << i <<","<<j <<"," <<depth << endl;
+			      Face_Template << i + offset_y <<"," << j + offset_x <<"," <<depth + offset_z  << endl;
 			}
 		}
 	}
+
+    // To be USed by ICP function to generate final transform
+    offset_x = offset_x - detected_face.x;
+    offset_y = offset_y - detected_face.y;
+
 	Face_Template.close();
 }
 
@@ -308,7 +368,8 @@ static void parseCommandLine( int argc, char* argv[], bool& isColorizeDisp, bool
  * configure OpenCV with WITH_OPENNI flag is ON (using CMake).
  */
 int main( int argc, char* argv[] )
-{
+{   
+    time_t start = time(0);
     bool isColorizeDisp, isFixedMaxDisp;
     int imageMode;
     bool retrievedImageFlags[5];
@@ -391,14 +452,20 @@ int main( int argc, char* argv[] )
     };
     //printf("Entering for\n");
 
+    int last_printed = 0;
+    int WAIT_SEC = 10;
+
     for(;;)
     {
         Mat depthMap;
+        Point image_center;
+        Mat Display_image;
         Mat validDepthMap;
         Mat disparityMap;
         Mat bgrImage;
         Mat grayImage;
-        Mat show; 
+        Mat show;
+        double seconds_since_start = difftime( time(0), start);
 
         if( !capture.grab() )
         {
@@ -411,15 +478,39 @@ int main( int argc, char* argv[] )
             {
                 const float scaleFactor = 0.05f;
 		depthMap.convertTo( show, CV_8UC1, scaleFactor );
-                imshow( "depth map", show );
+                //imshow( "depth map", show );
             }
 
-            if( capture.retrieve( bgrImage, CV_CAP_OPENNI_BGR_IMAGE ) )
-                imshow( "rgb image", bgrImage );
+            if( capture.retrieve( bgrImage, CV_CAP_OPENNI_BGR_IMAGE ) ) {
+                
+            // Align nose with the circle
+
+
+                int rad = 40;
+               	int row_rgb = bgrImage.rows;
+            	int col_rgb = bgrImage.cols;
+                image_center.y = row_rgb/2 - 100;
+                image_center.x = col_rgb/2;
+                Display_image = bgrImage.clone();
+                // Copying bgrImage so that circle is shown temporarily only
+                circle( Display_image, image_center, rad, Scalar( 255, 0, 0 ), 3, 8, 0 );
+                imshow( "rgb image", Display_image );
+
+                // Wait for a key Press
+                //std::cin.ignore();
+                // Now it will capture Golden data 
+            }
 
         /*    if( retrievedImageFlags[4] && capture.retrieve( grayImage, CV_CAP_OPENNI_GRAY_IMAGE ) )
                 imshow( "gray image", grayImage );*/
-	    if(!depthMap.empty() && !bgrImage.empty())
+
+        int seconds = int(seconds_since_start);
+        if(last_printed<seconds && seconds<=WAIT_SEC){
+            printf(" Capturing Golden Face template after %d Seconds ...\n\n", WAIT_SEC - seconds);
+                last_printed=seconds;
+        }
+            
+	    if(!depthMap.empty() && !bgrImage.empty() && (seconds_since_start > WAIT_SEC)) 
 		    detectAndDisplay(bgrImage, depthMap, argc, argv);
 	    
 	    //writeMatToFile("depth.txt",depthMap);
@@ -428,13 +519,23 @@ int main( int argc, char* argv[] )
         if( waitKey( 30 ) >= 0 )
             break;
     }
-
+    Trans_dump.close();
     return 0;
 }
 
 
 void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
-{
+{   
+
+    // Resize Image
+    Size new_size;
+    new_size = rgbframe.size();
+    new_size.width = new_size.width/2;
+    new_size.height = new_size.height/2;
+    
+    resize(rgbframe, rgbframe, new_size,0,0,INTER_NEAREST); 
+    resize(depthframe, depthframe, new_size,0,0,INTER_NEAREST); 
+    
     //cv::FileStorage file("face_template.xml", cv::FileStorage::WRITE);
     //printf("detectAndDisplay\n");	
     Mat frame_gray;
@@ -454,64 +555,101 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
    Rect nose;
    Point nose_center;
    //printf("detectAndDisplay faces found %d\n",faces.size());	
+   int max_rect_area = 0;
+   int area;
+
    for( size_t i = 0; i < faces.size(); i++ )
     {
 
       Mat faceROI = frame_gray( faces[i] );
       std::vector<Rect> eyes;
+      found = 1;
+      area = faces[i].width * faces[i].height;
+
+      if(area > max_rect_area) {
+	  face_index = i;
+      max_rect_area = area;
+      }
+
+
+
+
+      // Checking which face rectangle is the biggest, in case there are multiple faces, the nearest face will be taken
+
       //printf("min is %f\n",min);
             //-- In each face, detect eyes
       //eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(30, 30) );
-      eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(30, 30) );
-
-      for( size_t j = 0; j < eyes.size(); j++ )
-       {
-         //Point eye_center( faces[i].x + eyes[j].x + eyes[j].width/2, faces[i].y + eyes[j].y + eyes[j].height/2 );
-         //circle( rgbframe, eye_center, radius, Scalar( 255, 0, 0 ), 3, 8, 0 );
-      	 Mat d_rect = faceROI(eyes[j]);
-      	 double min,max;
-      	 cv::Point min_loc,max_loc;
-      	 cv::minMaxLoc(d_rect, &min, &max, &min_loc, &max_loc);
-	 if (min < min_g)
-         {
-	 	min_g = min;
-		face_index = i;
-		min_loc_g.x = faces[i].x + min_loc.x ;
-		min_loc_g.y = faces[i].y + min_loc.y ;
-		nose = eyes[j];
-                nose_center.x = faces[i].x + eyes[j].x + eyes[j].width/2;
-		nose_center.y = faces[i].y + eyes[j].y + eyes[j].height/2 ;
+//      eyes_cascade.detectMultiScale( faceROI, eyes, 1.1, 2, 0 |CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+//
+//
+//        // Taking the largest rectangle        
+//
+//      for( size_t j = 0; j < eyes.size(); j++ )
+//       {
+//         //Point eye_center( faces[i].x + eyes[j].x + eyes[j].width/2, faces[i].y + eyes[j].y + eyes[j].height/2 );
+//         //circle( rgbframe, eye_center, radius, Scalar( 255, 0, 0 ), 3, 8, 0 );
+//      	 Mat d_rect = faceROI(eyes[j]);
+//      	 double min,max;
+//      	 cv::Point min_loc,max_loc;
+//      	 cv::minMaxLoc(d_rect, &min, &max, &min_loc, &max_loc);
+//	 if (min < min_g)
+//         {
+//	 	min_g = min;
+//		face_index = i;
+//		min_loc_g.x = faces[i].x + min_loc.x ;
+//		min_loc_g.y = faces[i].y + min_loc.y ;
+//		nose = eyes[j];
+//                nose_center.x = faces[i].x + eyes[j].x + eyes[j].width/2;
+//		nose_center.y = faces[i].y + eyes[j].y + eyes[j].height/2 ;
 		
-         }      
-      	 found = 1;
+//         }      
 
-       }
+
+//       }
     }
    //-- Show what you got
    if (found == 1)
    {
+    
+       
+       
    	Point center( faces[face_index].x + faces[face_index].width/2, faces[face_index].y + faces[face_index].height/2 );
 	ellipse( rgbframe, center, Size( faces[face_index].width/2, faces[face_index].height/2), 0, 0, 360, Scalar( 255, 0, 255 ), 2, 8, 0 );
-   	printf("Depth is %f\n",min_g);
-        int radius = cvRound( (nose.width + nose.height)*0.25 );
-        circle( rgbframe, nose_center, radius, Scalar( 255, 0, 0 ), 3, 8, 0 );
+   	//printf("Depth is %f\n",min_g);
+        //int radius = cvRound( (nose.width + nose.height)*0.25 );
+        //circle( rgbframe, nose_center, radius, Scalar( 255, 0, 0 ), 3, 8, 0 );
    	imshow( window_name, rgbframe );
-      	Mat d_rect = depthframe(faces[face_index]);
+    
+    // Capturing depth image based on found rectangle
+    Mat d_rect = depthframe(faces[face_index]);
        	//imshow("Face Depth",depthframe);  
         //imshow("Rectangle Depth",d_rect);
-	printf("Nose depth is nose_center %d \n",depthframe.at<int>(nose_center.x,nose_center.y));
+	//printf("Nose depth is nose_center %d \n",depthframe.at<int>(nose_center.x,nose_center.y));
 	//file<<"depthMap"<<d_rect(nose);
 	//file<<"depthMap"<<d_rect;
 	//int filenumber2 = 1;
 	//cin >> filenumber2;
-	printf("Point is %d,%d \n",min_loc_g.x,min_loc_g.y);
+	//printf("Point is %d,%d \n",min_loc_g.x,min_loc_g.y);
+
 	if (filenumber == 1 )
-	{
-		matToCSV(d_rect);
+	{   
+        // global rectangle is saved at this point
+        golden_face.x = faces[face_index].x;
+        golden_face.y = faces[face_index].y;
+        golden_face.width = faces[face_index].width;
+        golden_face.height = faces[face_index].height;
+        golden_image = d_rect.clone();
+        printf(" GOLDEN FACE RECTANGLE :  X = %d, Y = %d\n",golden_face.x, golden_face.y);
+		matToCSV(d_rect, faces[face_index]);
 	}
 	else
 	{
-		matToCSV(d_rect);
+        // Resizing
+        imshow("Before resize",d_rect);
+        resize(d_rect, d_rect, golden_image.size(), 0, 0, INTER_NEAREST );
+        imshow("After resize",d_rect);
+        //std::cin.ignore();
+		matToCSV(d_rect, faces[face_index]);
 		transformation(argc, argv);
 	}
 	
