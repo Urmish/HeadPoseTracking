@@ -1,1 +1,0 @@
-/home/kush/766/HeadPoseTracking/template_generator/CMakeFiles/cvni.dir
