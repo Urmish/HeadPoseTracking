@@ -33,3 +33,8 @@ CVNI_FaceDetect_ICP_Kush/CMakeFiles/
 CVNI_FaceDetect_ICP_Kush/CMakeCache.txt
 CVNI_FaceDetect_ICP_Kush/Makefile
 CVNI_FaceDetect_ICP_Kush/cmake_install.cmake
+CVNI_FaceDetect_ICP_Kush/*.csv
+*/CMakeFiles/
+*/Makefile/
+*/cmake_install.cmake
+*/CMakeCache.txt

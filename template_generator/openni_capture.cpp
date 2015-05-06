@@ -197,7 +197,8 @@ void matToCSV (Mat& image, Rect detected_face )
 	string nameDense;
 	if (filenumber == 1)
 	{
-		name = "Golden.csv";
+		name = "sparse/Golden.csv";
+        nameDense = "dense/Golden.csv";
         filenumber++;
 	}
 	else
