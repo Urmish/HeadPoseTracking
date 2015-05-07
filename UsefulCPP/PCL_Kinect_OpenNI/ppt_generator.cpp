@@ -192,16 +192,22 @@ void transformation (int argc, char *argv[])
     }
     	
     Eigen::Matrix4f transform_1 = Eigen::Matrix4f::Identity();
-    
-    pcl::transformPointCloud (*cloud_golden, *cloud_transformed, transform_1);
+    //Eigen::Affine3f A;
     for(int i = 0; i < 3; i++)
     {
         for(int j = 0; j < 3; j++)
-            transform_1 (i,j) = R[i][j]; // Euler angle function uses Column Major
+            transform_1 (i,j) = T(i,j); // Euler angle function uses Column Major
+            //transform_1 (i,j) = R[i][j]; // Euler angle function uses Column Major
     }
+    
+    cout << "Writing to cloud transformed" <<endl;
+    pcl::transformPointCloud (*cloud_golden, *cloud_transformed, transform_1);
     eulerAngles(R); 
 
-	cout << "Euler Angles : X  = "  << Angle[0] * 180/ PI  << ", Y = " << Angle[1] * 180/ PI << " , Z = " <<    Angle[2] * 180/ PI << endl;
+    cout << "Euler Angles : X  = "  << Angle[0] * 180/ PI  << ", Y = " << Angle[1] * 180/ PI << " , Z = " <<    Angle[2] * 180/ PI << endl;
+    //pcl::getTransformation(0,0,0,-1*Angle[2],-1*Angle[0],-1*Angle[1]);
+    //transform_1 = A.matrix();
+    //pcl::transformPointCloud (*cloud_golden, *cloud_transformed, transform_1);
 
 }
 
@@ -419,7 +425,7 @@ int main( int argc, char* argv[] )
             << std::endl;
 // 
 
-    cloud_transformed = cloud_golden;	
+    pcl::copyPointCloud (*cloud_golden, *cloud_transformed);
     cout << "Device opening ..." << endl;
     cout << CV_CAP_OPENNI <<endl;
     VideoCapture capture;
@@ -560,6 +566,8 @@ int main( int argc, char* argv[] )
 	    //writeMatToFile("depth.txt",depthMap);
         }
 
+  	viewer->spinOnce (10);
+  	boost::this_thread::sleep (boost::posix_time::microseconds (10));
         viewer->removePointCloud("sample cloud");
   	viewer->addPointCloud<pcl::PointXYZ> (cloud_transformed, "sample cloud");
   	viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
@@ -693,9 +701,9 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
 	else
 	{
         // Resizing
-        imshow("Before resize",d_rect);
+        //imshow("Before resize",d_rect);
         resize(d_rect, d_rect, golden_image.size(), 0, 0, INTER_NEAREST );
-        imshow("After resize",d_rect);
+        //imshow("After resize",d_rect);
         //std::cin.ignore();
 		matToCSV(d_rect, faces[face_index]);
 		transformation(argc, argv);
