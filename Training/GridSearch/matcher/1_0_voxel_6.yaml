@@ -1,0 +1,46 @@
+readingDataPointsFilters:
+  - VoxelGridDataPointsFilter:
+       vSizeX: 4.0
+       vSizeY: 4.0
+       vSizeZ: 4.0
+       useCentroid: 1
+       averageExistingDescriptors: 1
+
+referenceDataPointsFilters:
+  - VoxelGridDataPointsFilter:
+       vSizeX: 4.0
+       vSizeY: 4.0
+       vSizeZ: 4.0
+       useCentroid: 1
+       averageExistingDescriptors: 1
+
+
+matcher:
+  KDTreeMatcher:
+    knn: 1
+    epsilon: 0 
+
+outlierFilters:
+  - TrimmedDistOutlierFilter:
+      ratio: 0.9
+
+errorMinimizer:
+  PointToPointErrorMinimizer
+
+transformationCheckers:
+  - CounterTransformationChecker:
+      maxIterationCount: 40
+  - DifferentialTransformationChecker:
+      minDiffRotErr: 0.001
+      minDiffTransErr: 0.01
+      smoothLength: 4 
+
+inspector:
+  VTKFileInspector:
+     baseFileName : vissteps
+     dumpDataLinks : 0
+     dumpReading : 0
+     dumpReference : 0
+
+logger:
+  NullLogger
