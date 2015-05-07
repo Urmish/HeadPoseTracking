@@ -46,6 +46,10 @@ UsefulCPP/ConvertCSVToPCD/CMakeFiles/
 UsefulCPP/ConvertCSVToPCD/Makefile
 UsefulCPP/ConvertCSVToPCD/cmake_install.cmake
 UsefulCPP/ConvertCSVToPCD/CMakeCache.txt
+UsefulCPP/PCL_Kinect_OpenNI/CMakeFiles/
+UsefulCPP/PCL_Kinect_OpenNI/Makefile
+UsefulCPP/PCL_Kinect_OpenNI/cmake_install.cmake
+UsefulCPP/PCL_Kinect_OpenNI/CMakeCache.txt
 Template_dataset/CMakeFiles/
 Template_dataset/Makefile
 Template_dataset/cmake_install.cmake
