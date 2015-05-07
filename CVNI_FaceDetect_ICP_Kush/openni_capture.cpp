@@ -11,11 +11,12 @@
 #include <iostream>
 #include "boost/filesystem.hpp"
 #include <time.h>
-
+#include <sstream>
+#include <stdlib.h>
 
 using namespace cv;
 using namespace std;
-static int filenumber = 1;
+static long int filenumber = 1;
 
 Rect golden_face;
 Point golden_nose_point;
@@ -24,6 +25,12 @@ Mat golden_image;
 int offset_x = 0;
 int offset_y = 0;
 int offset_z = 0;
+
+int not_converged = 1;
+int face_index = 0;
+
+
+std::vector<Rect> faces;
 
 ofstream Trans_dump ("Transformation_dump.csv");
 #define MATRIX_DUMP 1
@@ -109,7 +116,13 @@ void transformation (int argc, char *argv[])
 	//const DP data(DP::load(argv[2]));
 
 	const DP ref(DP::load("Golden.csv"));
-	const DP data(DP::load("Final.csv"));
+
+    std::ostringstream fileNameStream("");
+    fileNameStream << "Capture" << filenumber - 1 << ".csv";
+    string Inputname = fileNameStream.str();
+
+	const DP data(DP::load(Inputname.c_str()));
+	//const DP data(DP::load("Final.csv"));
 	// Create the default ICP algorithm
 	PM::ICP icp;
 	
@@ -141,24 +154,19 @@ void transformation (int argc, char *argv[])
 	icp.transformations.apply(data_out, T);
 	
 	// Safe files to see the results
+    cout << "match ratio: " << icp.errorMinimizer->getWeightedPointUsedRatio() << endl;
+    //cout << "Iteration Count: " << icp.iterationCount  << endl;
 	ref.save("test_ref.vtk");
 	data.save("test_data_in.vtk");
 	data_out.save("test_data_out.vtk");
-	cout << "Final transformation:" << endl << T << endl;
+	//cout << "Final transformation:" << endl << T << endl;
 
     // Updating transform matrix 
-    T(0,3) = offset_x;
-    T(1,3) = offset_y;
-    T(2,3) = offset_z;
+    T(0,3) += offset_x;
+    T(1,3) += offset_y;
+    T(2,3) += offset_z;
 	cout << "Final transformation:" << endl << T << endl;
 
-    if(MATRIX_DUMP == 1) {
-        for(int i = 0; i < 4; i++)
-        {
-            Trans_dump << T(i,0) <<"," <<T(i,1) <<"," << T(i,2) << "," << T(i,3) <<endl;
-        }
-         Trans_dump << endl << endl;
-    }
 
     float R[3][3];
     
@@ -172,6 +180,46 @@ void transformation (int argc, char *argv[])
 
 	cout << "Euler Angles : X  = "  << Angle[0] * 180/ PI  << ", Y = " << Angle[1] * 180/ PI << " , Z = " <<    Angle[2] * 180/ PI << endl;
 
+    if(MATRIX_DUMP == 1) {
+        //for(int i = 0; i < 4; i++)
+        //{
+            Trans_dump << T(0,3) <<","<< T(1,3) << "," << T(2,3) << ","  << Angle[0] * 180/ PI  << "," << Angle[1] * 180/ PI << "," << Angle[2] * 180/ PI << endl;
+        //}
+         //Trans_dump << endl << endl;
+    
+
+    // Tranforming golden and showing it as image
+
+//    for(int i = 0; i < 3; i++)
+//    {
+//        for(int j = 0; j < 3; j++)
+//            if( i != j )
+//            T(i,j) = -T(i,j); // Euler angle function uses Column Major
+//    }
+
+    
+    //T(0,3) = 0;
+    //T(1,3) = 0;
+    //T(2,3) = 0;
+
+    T = T.inverse();
+
+    PM::Transformation* rigidTrans;
+    rigidTrans = PM::get().REG(Transformation).create("RigidTransformation");
+
+    if (!rigidTrans->checkParameters(T)) {
+        std::cout << "WARNING: T does not represent a valid rigid transformation\nProjecting onto an orthogonal basis"
+                << std::endl;
+        T = rigidTrans->correctParameters(T);
+    }
+
+
+    // Compute the transformation w.r.t GOLDEN
+    PM::DataPoints outputCloud =  rigidTrans->compute(ref,T);
+
+    outputCloud.save("Ref_transform.vtk");
+
+    }
 }
 
 void matToCSV (Mat& image, Rect detected_face )
@@ -186,7 +234,11 @@ void matToCSV (Mat& image, Rect detected_face )
 	}
 	else
 	{
-		name = "Final.csv";
+        filenumber++;
+        std::ostringstream fileNameStream("");
+        fileNameStream << "Capture" << filenumber - 1 << ".csv";
+        name = fileNameStream.str();
+		//name = "Final.csv";
 	}
 	//ofstream Face_Template ("Face_Template.csv"); 
 	ofstream Face_Template (name.c_str()); 
@@ -234,17 +286,18 @@ void matToCSV (Mat& image, Rect detected_face )
         //printf("\n\nTranslational Offset w.r.t Golden are - X : %d, Y : %d, Z : %d\n", offset_z, offset_x -  detected_face.x, offset_y - detected_face.y);
     }
 
-        printf("\n\nGolden Nose coordinates are : X = %d, Y = %d, Z = %d\n", golden_face.x + golden_nose_point.x , golden_face.y + golden_nose_point.y,  golden_nose_depth);
+        printf("Golden Nose coordinates are : X = %d, Y = %d, Z = %d\n", golden_face.x + golden_nose_point.x , golden_face.y + golden_nose_point.y,  golden_nose_depth);
+        printf("Detected Nose coordinates are : X = %d, Y = %d, Z = %d\n", detected_face.x + nose.x , detected_face.y + nose.y,  nose_depth);
         printf("Translational Offset w.r.t Golden (Subtract these from Golden) are  - X : %d, Y : %d, Z : %d\n", offset_x -  detected_face.x, offset_y - detected_face.y, offset_z);
 
-	for (int i=0;i<rows;i=i+2)
+	for (int i=0;i<rows;i+=2)
 	{
 		for (int j=0;j<cols;j+=2)
 		{
 			int depth = temp.at<int>(i,j);
 			if (depth != 0 && depth < (nose_depth + FACE_DEPTH))
 			{
-			      Face_Template << i + offset_y <<"," << j + offset_x <<"," <<depth + offset_z  << endl;
+			      Face_Template << j + offset_x <<"," <<  i + offset_y <<"," <<depth + offset_z  << endl;
 			}
 		}
 	}
@@ -525,7 +578,7 @@ int main( int argc, char* argv[] )
 
 
 void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
-{   
+{  
 
     // Resize Image
     Size new_size;
@@ -539,18 +592,29 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
     //cv::FileStorage file("face_template.xml", cv::FileStorage::WRITE);
     //printf("detectAndDisplay\n");	
     Mat frame_gray;
-    std::vector<Rect> faces;
 
    cvtColor( rgbframe, frame_gray, COLOR_BGR2GRAY );
    equalizeHist( frame_gray, frame_gray );
    //-- Detect faces
    //VIOLA JONESSSSSSSSSSSSSSS
+   int THRESHOLD = 25;
+   if(not_converged) {
    face_cascade.detectMultiScale( frame_gray, faces, 1.1, 4, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+   cout<<endl << endl <<"Detecting using Viola Jones"<<endl;
+   }
+   else {
+     faces[face_index].x = golden_face.x - offset_x;
+     faces[face_index].y = golden_face.y - offset_y;
+     if( faces[face_index].x < 0 || faces[face_index].y < 0  || abs(offset_x) > THRESHOLD || abs(offset_y) > THRESHOLD ) {
+   face_cascade.detectMultiScale( frame_gray, faces, 1.1, 4, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+     }
+     cout << endl << endl << "Predicting Motion" << endl << "Golden rectangle is X : "<< golden_face.x << "    Y : " << golden_face.y << endl; 
+     cout << " Shifted rectangle is X : "<< faces[face_index].x << "    Y : " << faces[face_index].y << endl; 
+   }
    //face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
 
    double min_g = DBL_MAX;  
    cv::Point min_loc_g;
-   int face_index = 0;
    int found = 0; 
    Rect nose;
    Point nose_center;
@@ -612,7 +676,6 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
    {
     
        
-       
    	Point center( faces[face_index].x + faces[face_index].width/2, faces[face_index].y + faces[face_index].height/2 );
 	ellipse( rgbframe, center, Size( faces[face_index].width/2, faces[face_index].height/2), 0, 0, 360, Scalar( 255, 0, 255 ), 2, 8, 0 );
    	//printf("Depth is %f\n",min_g);
@@ -650,7 +713,15 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
         imshow("After resize",d_rect);
         //std::cin.ignore();
 		matToCSV(d_rect, faces[face_index]);
-		transformation(argc, argv);
+		
+        try{
+        transformation(argc, argv);
+        // If not converged == 1 then VIOLA JONES will be used always 
+        not_converged = 0;    
+        }catch(...){
+            cout<< "Could not predict"<<endl;
+        not_converged = 1;    
+        }
 	}
 	
    }
