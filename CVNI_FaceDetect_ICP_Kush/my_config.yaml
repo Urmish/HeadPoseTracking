@@ -1,6 +1,11 @@
 readingDataPointsFilters:
   - RandomSamplingDataPointsFilter:
-      prob: 0.5
+      prob: 0.8
+
+referenceDataPointsFilters:
+  - SurfaceNormalDataPointsFilter:
+      knn: 10
+      keepNormals: 1
 
 matcher:
   KDTreeMatcher:
@@ -18,16 +23,19 @@ transformationCheckers:
   - CounterTransformationChecker:
       maxIterationCount: 40
   - DifferentialTransformationChecker:
-      minDiffRotErr: 0.001
-      minDiffTransErr: 0.01
+      minDiffRotErr: 0.05
+      minDiffTransErr: 0.1
       smoothLength: 4 
 
 inspector:
-  VTKFileInspector:
-     baseFileName : vissteps
-     dumpDataLinks : 0
-     dumpReading : 0
-     dumpReference : 0
+ VTKFileInspector:
+    baseFileName: pointmatcher-run1
+    dumpPerfOnExit: 0
+    dumpStats: 0
+    dumpIterationInfo: 0
+    dumpDataLinks: 0
+    dumpReading: 0
+    dumpReference: 0
 
 logger:
-  NullLogger
+  FileLogger

@@ -28,6 +28,7 @@ int offset_z = 0;
 
 int not_converged = 1;
 int face_index = 0;
+int viola_jones_count = 0;
 
 
 std::vector<Rect> faces;
@@ -103,12 +104,11 @@ void eulerAngles(float R[3][3]) {
 
 
 
-void transformation (int argc, char *argv[])
+void transformation (Mat& rgbframe)
 {
 	bool isCSV = true;
-	
-	typedef PointMatcher<float> PM;
-	typedef PM::DataPoints DP;
+    typedef PointMatcher<float> PM;
+    typedef PM::DataPoints DP;	
 	typedef PM::Parameters Parameters;
 	
 	// Load point clouds
@@ -159,7 +159,7 @@ void transformation (int argc, char *argv[])
 	ref.save("test_ref.vtk");
 	data.save("test_data_in.vtk");
 	data_out.save("test_data_out.vtk");
-	//cout << "Final transformation:" << endl << T << endl;
+	cout << "Final transformation:" << endl << T << endl;
 
     // Updating transform matrix 
     T(0,3) += offset_x;
@@ -187,6 +187,23 @@ void transformation (int argc, char *argv[])
         //}
          //Trans_dump << endl << endl;
     
+
+        ofstream Game_dump ("/home/kush/Desktop/game/input_from_icp.txt");
+
+        if( (Angle[0] * 180/ PI) < -7.5 )
+        Game_dump << "1" << endl;
+        else if ( (Angle[0] * 180/ PI) > 7.5 )
+        Game_dump << "2" << endl;
+        else if ( (Angle[1] * 180/ PI) > 10 )
+        Game_dump << "4" << endl;
+        else if ( (Angle[1] * 180/ PI) < -10 )
+        Game_dump << "3" << endl;
+        else
+        Game_dump << "0" << endl;
+
+
+
+        Game_dump.close();
 
     // Tranforming golden and showing it as image
 
@@ -218,6 +235,22 @@ void transformation (int argc, char *argv[])
     PM::DataPoints outputCloud =  rigidTrans->compute(ref,T);
 
     outputCloud.save("Ref_transform.vtk");
+
+        // Showing GREEN POINTSS !!
+        const int pointCount(outputCloud.features.cols());
+    	const int dimCount(outputCloud.features.rows());
+    	const int descDimCount(outputCloud.descriptors.rows());
+   
+    	for (int p = 1; p < pointCount; p = p + 2)
+    	{
+
+            rgbframe.at<cv::Vec3b>( outputCloud.features(1,p)  ,  outputCloud.features(0,p) ) [0]  = 0;
+            rgbframe.at<cv::Vec3b>( outputCloud.features(1,p)  ,  outputCloud.features(0,p) ) [1]  = 255;
+            rgbframe.at<cv::Vec3b>( outputCloud.features(1,p)  ,  outputCloud.features(0,p) ) [2]  = 0;
+    	}
+
+        imshow("Tracked", rgbframe );
+
 
     }
 }
@@ -297,7 +330,7 @@ void matToCSV (Mat& image, Rect detected_face )
 			int depth = temp.at<int>(i,j);
 			if (depth != 0 && depth < (nose_depth + FACE_DEPTH))
 			{
-			      Face_Template << j + offset_x <<"," <<  i + offset_y <<"," <<depth + offset_z  << endl;
+			      Face_Template << j + offset_x <<"," <<  i + offset_y <<"," << (depth + offset_z) - golden_nose_depth  << endl;
 			}
 		}
 	}
@@ -423,6 +456,7 @@ static void parseCommandLine( int argc, char* argv[], bool& isColorizeDisp, bool
 int main( int argc, char* argv[] )
 {   
     time_t start = time(0);
+    time_t start_frame_count;
     bool isColorizeDisp, isFixedMaxDisp;
     int imageMode;
     bool retrievedImageFlags[5];
@@ -561,16 +595,22 @@ int main( int argc, char* argv[] )
         if(last_printed<seconds && seconds<=WAIT_SEC){
             printf(" Capturing Golden Face template after %d Seconds ...\n\n", WAIT_SEC - seconds);
                 last_printed=seconds;
+    
         }
             
-	    if(!depthMap.empty() && !bgrImage.empty() && (seconds_since_start > WAIT_SEC)) 
+	    if(!depthMap.empty() && !bgrImage.empty() && (seconds_since_start > WAIT_SEC))
 		    detectAndDisplay(bgrImage, depthMap, argc, argv);
 	    
 	    //writeMatToFile("depth.txt",depthMap);
         }
 
-        if( waitKey( 30 ) >= 0 )
+        if( waitKey( 30 ) >= 0 )  {
+            seconds_since_start = difftime( time(0), start) - WAIT_SEC;
+            cout << endl << endl << " FPS is : " << ( (double)(filenumber - 1) )/seconds_since_start << endl; 
+            cout << " Viola Jones Count is : " << viola_jones_count <<  " Total file count is : " << filenumber - 1 << endl; 
+            cout << " Predictor Accuracy is : " << ( (double)(filenumber - viola_jones_count - 1 ) ) * 100 / (double) (filenumber - 1) << endl; 
             break;
+        }
     }
     Trans_dump.close();
     return 0;
@@ -601,12 +641,16 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
    if(not_converged) {
    face_cascade.detectMultiScale( frame_gray, faces, 1.1, 4, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
    cout<<endl << endl <<"Detecting using Viola Jones"<<endl;
+   viola_jones_count++;
    }
    else {
      faces[face_index].x = golden_face.x - offset_x;
      faces[face_index].y = golden_face.y - offset_y;
      if( faces[face_index].x < 0 || faces[face_index].y < 0  || abs(offset_x) > THRESHOLD || abs(offset_y) > THRESHOLD ) {
-   face_cascade.detectMultiScale( frame_gray, faces, 1.1, 4, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+
+        cout<<endl << endl <<"Detecting using Viola Jones"<<endl;
+        viola_jones_count++;
+        face_cascade.detectMultiScale( frame_gray, faces, 1.1, 4, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
      }
      cout << endl << endl << "Predicting Motion" << endl << "Golden rectangle is X : "<< golden_face.x << "    Y : " << golden_face.y << endl; 
      cout << " Shifted rectangle is X : "<< faces[face_index].x << "    Y : " << faces[face_index].y << endl; 
@@ -676,6 +720,7 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
    {
     
        
+    Mat Display_image = rgbframe.clone();  // Before Rectangle
    	Point center( faces[face_index].x + faces[face_index].width/2, faces[face_index].y + faces[face_index].height/2 );
 	ellipse( rgbframe, center, Size( faces[face_index].width/2, faces[face_index].height/2), 0, 0, 360, Scalar( 255, 0, 255 ), 2, 8, 0 );
    	//printf("Depth is %f\n",min_g);
@@ -708,16 +753,22 @@ void detectAndDisplay( Mat rgbframe, Mat depthframe, int argc, char *argv[] )
 	else
 	{
         // Resizing
-        imshow("Before resize",d_rect);
+        //imshow("Before resize",d_rect);
         resize(d_rect, d_rect, golden_image.size(), 0, 0, INTER_NEAREST );
-        imshow("After resize",d_rect);
+        //imshow("After resize",d_rect);
         //std::cin.ignore();
 		matToCSV(d_rect, faces[face_index]);
 		
         try{
-        transformation(argc, argv);
+        transformation(Display_image);
         // If not converged == 1 then VIOLA JONES will be used always 
-        not_converged = 0;    
+        not_converged = 0;   
+
+
+
+
+
+
         }catch(...){
             cout<< "Could not predict"<<endl;
         not_converged = 1;    
