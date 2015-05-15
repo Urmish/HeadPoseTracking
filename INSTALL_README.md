@@ -1,5 +1,4 @@
-#OpenNI 
-
+#OpenNI
 sudo apt install libopenni-dev
 -----------------------------------------------------------------------------------------
 #PrimeSense 
