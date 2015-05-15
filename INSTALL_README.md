@@ -1,18 +1,16 @@
-OpenNI -
+#OpenNI 
 
 sudo apt install libopenni-dev
 -----------------------------------------------------------------------------------------
-PrimeSense -
+#PrimeSense 
 
 sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
-
 sudo apt-get update
-
 sudo apt-get install libpcl-all
-
 git clone https://github.com/avin2/SensorKinect.git
 
 Building Sensor:
+
 1. Go into the directory: "Platform/Linux/CreateRedist".
 	   Run the script: "./RedistMaker".
 
@@ -22,7 +20,7 @@ Building Sensor:
 1. Go into the directory: "Platform/Linux/Redist".
 	   Run the script: "sudo ./install.sh" (needs to run as root)
 -----------------------------------------------------------------------------------------
-OpenCV with OpenNI -
+#OpenCV with OpenNI 
 Use this link to install OpenCV Dependencies in your linux machine.
 
 http://www.samontab.com/web/2014/06/installing-opencv-2-4-9-in-ubuntu-14-04-lts/
@@ -35,7 +33,7 @@ Check that it detects the OpenCV and PrimeSense Library correctly
 make
 sudo make install
 --------------------------------------------------------------------------------------------------------
-PCL Library -
+#PCL Library 
 
 sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
 sudo apt-get update
@@ -54,7 +52,7 @@ Building Sensor:
 
 --------------------------------------------------------------------------------------------------------
 
-Libpointmatcher -
+#Libpointmatcher 
 
 1. Download the source code from https://github.com/ethz-asl/libpointmatcher/blob/master/doc/Compilation.md. 
 2. Follow the instructions there to install dependencies and libpointmatcher
