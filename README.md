@@ -14,6 +14,10 @@ ICP Grid Search at GridSearch/
 
 ###motion_predictor/
 Matlab file for motion prediction training
+Transformation_dump.csv is the file used for determining the motion predictor parameters
+
+###modified_game_files/
+sauerbraten/src/engine/main.cpp was modified to integrate with our head tracker output. This folder contains the modified main.cpp file.
 
 ###CVNI_FaceDetect_ICP_Kush/
 Complete program with game integration support.
