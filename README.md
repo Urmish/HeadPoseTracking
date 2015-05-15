@@ -1,4 +1,4 @@
-Please Read the Installation Guide before you proceed with this.
+Please Read the INSTALL_README and INFO_README before you proceed with this.
 
 ICP Grid Search
 
