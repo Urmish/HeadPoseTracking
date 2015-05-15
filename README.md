@@ -9,8 +9,8 @@ In each folder -
 ###Training/
 ICP Grid Search at GridSearch/
 
-Matcher/Matcher_Normal - Show some of the configurations used
-Results - CSV File of the corresponding results
+1. Matcher/Matcher_Normal - Show some of the configurations used
+2. Results - CSV File of the corresponding results
 
 ###motion_predictor/
 Matlab file for motion prediction training
