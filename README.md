@@ -13,7 +13,7 @@ ICP Grid Search at GridSearch/
 2. Results - CSV File of the corresponding results
 
 ###motion_predictor/
-Matlab file for motion prediction training
+Matlab file for motion prediction training(main.m). 
 Transformation_dump.csv is the file used for determining the motion predictor parameters
 
 ###modified_game_files/
