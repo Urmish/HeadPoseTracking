@@ -18,7 +18,9 @@ Building Sensor:
 	   It will also create a distribution in the "Platform/Linux/CreateRedist/Final" directory.
 1. Go into the directory: "Platform/Linux/Redist".
 	   Run the script: "sudo ./install.sh" (needs to run as root)
+
 -----------------------------------------------------------------------------------------
+
 #OpenCV with OpenNI 
 Use this link to install OpenCV Dependencies in your linux machine.
 
@@ -31,7 +33,9 @@ cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_SHARED_LIBS=ON -DBUILD_PYTHON_SUPPORT=ON 
 Check that it detects the OpenCV and PrimeSense Library correctly
 make
 sudo make install
+
 --------------------------------------------------------------------------------------------------------
+
 #PCL Library 
 
 sudo add-apt-repository ppa:v-launchpad-jochen-sprickerhof-de/pcl
