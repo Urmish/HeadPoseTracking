@@ -24,7 +24,7 @@ Complete program with game integration support.
 
 C code used for grid search. Input, list of configuration files
 
-###CVNI_FPS
+###UsefulCPP/CVNI_FPS
 
 This is an optimized code to get the FPS of our system
 
