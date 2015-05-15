@@ -12,6 +12,7 @@ Matlab file for motion prediction training
 ##CVNI_FaceDetect_ICP_Kush/
 Complete program with game integration support.
 
-Use -
+Use-
+
 ./cvni
 
