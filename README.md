@@ -13,6 +13,5 @@ Matlab file for motion prediction training
 Complete program with game integration support.
 
 Use -
-
 ./cvni
 
