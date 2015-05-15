@@ -1,5 +1,0 @@
-1. Zero Depth Remove
-2. Try side face detection - haarprofile, lbpprofile
-3. How to remove background? ask Vikas tomorrow -- try mean distance, histogram
-4. Presentation say implement ICP on our own optimised for face alignment
-5. Motion prediction and its infrastructure
